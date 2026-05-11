@@ -1,0 +1,132 @@
+{
+  "name": "personal-notes",
+  "displayName": "Personal Notes",
+  "description": "Attach notes to lines in your code, persisted in .vscode/notes.json",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "personal-notes-explorer",
+          "title": "Personal Notes",
+          "icon": "images/notebook-pen.svg"
+        }
+      ]
+    },
+    "views": {
+      "personal-notes-explorer": [
+        {
+          "type": "webview",
+          "id": "personalNotes.searchBar",
+          "name": "Filter"
+        },
+        {
+          "id": "personalNotes.notesTree",
+          "name": "Notes"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "personalNotes.addNote",
+        "title": "Add Note",
+        "category": "Notes"
+      },
+      {
+        "command": "personalNotes.editNote",
+        "title": "Edit Note",
+        "category": "Notes"
+      },
+      {
+        "command": "personalNotes.deleteNote",
+        "title": "Delete Note",
+        "category": "Notes"
+      },
+      {
+        "command": "personalNotes.deleteAllInFile",
+        "title": "Delete All Notes in Current File",
+        "category": "Notes"
+      },
+      {
+        "command": "personalNotes.openNotesForFile",
+        "title": "Open Notes Editor",
+        "category": "Notes",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "personalNotes.clearFilters",
+        "title": "Clear Filters",
+        "category": "Notes",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "personalNotes.toggleGutterIcons",
+        "title": "Toggle Gutter Icons",
+        "category": "Notes"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "personalNotes.addNote",
+          "group": "notes@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "personalNotes.editNote",
+          "group": "notes@2",
+          "when": "editorTextFocus && personalNotes.hasNoteAtCursor"
+        },
+        {
+          "command": "personalNotes.deleteNote",
+          "group": "notes@3",
+          "when": "editorTextFocus && personalNotes.hasNoteAtCursor"
+        }
+      ],
+      "commandPalette": [
+        { "command": "personalNotes.addNote", "when": "editorIsOpen" },
+        { "command": "personalNotes.editNote", "when": "editorIsOpen" },
+        { "command": "personalNotes.deleteNote", "when": "editorIsOpen" },
+        { "command": "personalNotes.deleteAllInFile", "when": "editorIsOpen" },
+        { "command": "personalNotes.openNotesForFile", "when": "false" },
+        { "command": "personalNotes.clearFilters", "when": "false" }
+      ],
+      "view/title": [
+        {
+          "command": "personalNotes.clearFilters",
+          "when": "view == personalNotes.notesTree && personalNotes.hasActiveFilters",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "personalNotes.openNotesForFile",
+          "when": "view == personalNotes.notesTree && viewItem == noteFile",
+          "group": "inline"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "personalNotes.addNote",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
