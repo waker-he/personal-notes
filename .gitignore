@@ -1,0 +1,13 @@
+# Compiled output
+out/
+
+# Dependencies
+node_modules/
+
+# Extension package
+*.vsix
+
+# OS
+.DS_Store
+
+.claude/
