@@ -830,6 +830,21 @@ function activate(context) {
     color: var(--vscode-badge-foreground);
     opacity: 1;
   }
+  #tag-search {
+    width: 100%;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, transparent);
+    padding: 2px 6px;
+    margin-bottom: 5px;
+    font-size: var(--vscode-font-size);
+    font-family: var(--vscode-font-family);
+    outline: none;
+    border-radius: 2px;
+    box-sizing: border-box;
+  }
+  #tag-search:focus { border-color: var(--vscode-focusBorder); }
+  #tag-search::placeholder { color: var(--vscode-input-placeholderForeground); }
 </style>
 </head>
 <body>
@@ -839,6 +854,7 @@ function activate(context) {
 </div>
 <div id="tags-section">
   <div class="tags-label">Filter by tag</div>
+  <input type="text" id="tag-search" placeholder="Find tag…" autocomplete="off" spellcheck="false" />
   <div class="tags-list" id="tags-list"></div>
 </div>
 <script nonce="${nonce}">
@@ -847,6 +863,10 @@ function activate(context) {
   const clearBtn = document.getElementById('clear-btn');
   const tagsSection = document.getElementById('tags-section');
   const tagsList = document.getElementById('tags-list');
+  const tagSearch = document.getElementById('tag-search');
+
+  let allTags = [];
+  let selectedTags = [];
 
   input.addEventListener('input', () => {
     clearBtn.classList.toggle('visible', input.value.length > 0);
@@ -860,20 +880,31 @@ function activate(context) {
     input.focus();
   });
 
-  function renderTags(tags, selected) {
-    if (!tags.length) {
-      tagsSection.classList.remove('visible');
-      return;
-    }
+  tagSearch.addEventListener('input', renderTags);
+
+  function renderTags() {
+    if (!allTags.length) { tagsSection.classList.remove('visible'); return; }
     tagsSection.classList.add('visible');
+    const filter = tagSearch.value.toLowerCase();
+    const visible = filter
+      ? allTags.filter(t => t.toLowerCase().includes(filter))
+      : allTags.slice();
+    // Active tags first, then alphabetical within each group
+    visible.sort((a, b) => {
+      const aOn = selectedTags.includes(a), bOn = selectedTags.includes(b);
+      if (aOn !== bOn) { return aOn ? -1 : 1; }
+      return a.localeCompare(b);
+    });
     tagsList.innerHTML = '';
-    for (const tag of tags) {
+    for (const tag of visible) {
       const chip = document.createElement('button');
-      chip.className = 'chip' + (selected.includes(tag) ? ' active' : '');
+      chip.className = 'chip' + (selectedTags.includes(tag) ? ' active' : '');
       chip.textContent = tag;
       chip.addEventListener('click', () => {
-        const isActive = chip.classList.toggle('active');
-        vscode.postMessage({ type: 'tagToggle', tag, selected: isActive });
+        const nowActive = !selectedTags.includes(tag);
+        selectedTags = nowActive ? [...selectedTags, tag] : selectedTags.filter(t => t !== tag);
+        renderTags();
+        vscode.postMessage({ type: 'tagToggle', tag, selected: nowActive });
       });
       tagsList.appendChild(chip);
     }
@@ -885,7 +916,9 @@ function activate(context) {
       input.value = '';
       clearBtn.classList.remove('visible');
     } else if (msg.type === 'updateTags') {
-      renderTags(msg.tags, msg.selected);
+      allTags = msg.tags;
+      selectedTags = msg.selected;
+      renderTags();
     }
   });
 </script>
