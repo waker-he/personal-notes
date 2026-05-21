@@ -134,8 +134,10 @@ class NoteStore {
                 note.endLine += delta;
                 changed = true;
             }
-            else if (changeStart >= note.startLine && changeEnd <= note.endLine) {
-                // Change is entirely inside the note (anchor intact) — expand/shrink the range
+            else if (changeStart >= note.startLine && changeEnd <= note.endLine && (delta < 0 || changeStart < note.endLine)) {
+                // Change is entirely inside the note (anchor intact) — expand/shrink the range.
+                // For insertions, only expand when strictly before the last line so that pressing
+                // Enter at the end of the note's last line does not pull the new line into the range.
                 note.endLine += delta;
                 changed = true;
                 if (note.endLine < note.startLine) {
@@ -144,7 +146,7 @@ class NoteStore {
                     }
                 }
             }
-            else if (changeStart >= note.startLine && changeEnd > note.endLine) {
+            else if (changeStart >= note.startLine && changeStart <= note.endLine && changeEnd > note.endLine) {
                 // Change starts inside the note and extends beyond its end
                 // (handles "delete last line": changeEnd = note.endLine + 1)
                 note.endLine = changeStart - 1;
@@ -1227,9 +1229,11 @@ function activate(context) {
         }
         const changes = [...event.contentChanges].sort((a, b) => b.range.start.line - a.range.start.line);
         let shifted = false;
+        let lineCountChanged = false;
         for (const change of changes) {
             const delta = (change.text.split('\n').length - 1) - (change.range.end.line - change.range.start.line);
             if (delta !== 0) {
+                lineCountChanged = true;
                 if (store.shiftLinesForFile(relPath, change.range.start.line, change.range.end.line, delta)) {
                     shifted = true;
                 }
@@ -1237,6 +1241,16 @@ function activate(context) {
         }
         if (shifted) {
             refreshAll();
+        }
+        else if (lineCountChanged) {
+            // Note ranges unchanged, but VS Code stretches whole-line decorations when text
+            // is inserted at their boundary — re-apply to snap them back to the correct lines.
+            for (const editor of vscode.window.visibleTextEditors) {
+                if (toRelPath(editor.document.uri) === relPath) {
+                    refreshDecorations(editor);
+                    break;
+                }
+            }
         }
     }));
     context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(e => {
